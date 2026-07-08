@@ -4,7 +4,6 @@ const app = require('./src/app')
 const logger = require('./src/utils/logger')
 const db = require('./src/models')
 const { runMigrations } = require('./src/db/migrator')
-const { startDueTaskCron } = require('./src/jobs/dueTaskNotifier.job')
 
 const PORT = process.env.PORT || 5000
 
@@ -13,7 +12,6 @@ db.sequelize.authenticate()
         logger.info('DB connection established')
         try {
             await runMigrations()
-            startDueTaskCron()
             app.listen(PORT, () => {
                 logger.info(`Server running on port ${PORT}`)
             })

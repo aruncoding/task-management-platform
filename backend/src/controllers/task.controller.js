@@ -11,7 +11,7 @@ exports.create = async (req, res, next) => {
 
 exports.list = async (req, res, next) => {
   try {
-    const result = await taskService.listTasks(req.params.id, req.query)
+    const result = await taskService.listTasks(req.params.id, req.validatedQuery)
     res.json(result)
   } catch (err) {
     next(err)
@@ -29,7 +29,7 @@ exports.getOne = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const task = await taskService.updateTask(req.params.taskId, req.body)
+    const task = await taskService.updateTask(req.params.taskId, req.body, req.user.id)
     res.json({ task })
   } catch (err) {
     next(err)

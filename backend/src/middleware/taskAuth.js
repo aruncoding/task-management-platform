@@ -21,7 +21,6 @@ async function loadTaskAndMembership (req, res, next) {
   }
 }
 
-
 function allowStatusChange (req, res, next) {
   const role = req.projectMember.role
   if (role === 'admin' || role === 'manager') {

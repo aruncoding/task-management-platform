@@ -42,6 +42,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0
+    },
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'created_by'
+    },
+    updatedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'updated_by'
     }
   }, {
     tableName: 'tasks',
@@ -51,7 +61,9 @@ module.exports = (sequelize, DataTypes) => {
   Task.associate = (models) => {
     Task.belongsTo(models.Project, { foreignKey: 'projectId', as: 'project' })
     Task.belongsTo(models.User, { foreignKey: 'assigneeId', as: 'assignee' })
-    Task.hasMany(models.TaskComment, { foreignKey: 'taskId', as: 'comments' })
+    Task.hasMany(models.TaskComment, { foreignKey: 'taskId', as: 'activities' })
+    Task.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' })
+    Task.belongsTo(models.User, { foreignKey: 'updatedBy', as: 'updater' })
   }
 
   return Task

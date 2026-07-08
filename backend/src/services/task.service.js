@@ -14,12 +14,15 @@ async function createTask (projectId, data, actorId) {
       status: data.status || 'todo',
       assigneeId: data.assigneeId,
       dueDate: data.dueDate,
-      position: (maxPosition || 0) + 1
+      position: (maxPosition || 0) + 1,
+      createdBy: actorId,
+      updatedBy: actorId
     }, { transaction: t })
 
     await ActivityLog.create({
       projectId,
       actorId,
+      taskId: task.id,
       action: 'task_created',
       metadata: { taskId: task.id, title: task.title }
     }, { transaction: t })
@@ -66,12 +69,12 @@ async function getById (taskId) {
   return task
 }
 
-async function updateTask (taskId, data) {
+async function updateTask (taskId, data, actorId) {
   const task = await Task.findByPk(taskId)
   if (!task) {
     throw new ApiError(404, 'Task not found')
   }
-  await task.update(data)
+  await task.update({ ...data, updatedBy: actorId })
   invalidateProjectStats(task.projectId)
   return task
 }
@@ -90,11 +93,12 @@ async function changeStatus (taskId, newStatus, actorId) {
 
   await sequelize.transaction(async (t) => {
     const maxPosition = await Task.max('position', { where: { projectId: task.projectId, status: newStatus }, transaction: t })
-    await task.update({ status: newStatus, position: (maxPosition || 0) + 1 }, { transaction: t })
+    await task.update({ status: newStatus, position: (maxPosition || 0) + 1, updatedBy: actorId }, { transaction: t })
 
     await ActivityLog.create({
       projectId: task.projectId,
       actorId,
+      taskId: task.id,
       action: 'task_status_changed',
       metadata: { taskId: task.id, from: oldStatus, to: newStatus }
     }, { transaction: t })
@@ -124,7 +128,8 @@ async function reorderTask (taskId, { status, position }, actorId) {
       siblings.splice(position, 0, task)
       for (let i = 0; i < siblings.length; i++) {
         if (siblings[i].position !== i) {
-          await siblings[i].update({ position: i }, { transaction: t })
+          const extra = siblings[i].id === task.id ? { updatedBy: actorId } : {}
+          await siblings[i].update({ position: i, ...extra }, { transaction: t })
         }
       }
     } else {
@@ -147,7 +152,7 @@ async function reorderTask (taskId, { status, position }, actorId) {
       newSiblings.splice(position, 0, task)
       for (let i = 0; i < newSiblings.length; i++) {
         if (newSiblings[i].id === task.id) {
-          await task.update({ status, position: i }, { transaction: t })
+          await task.update({ status, position: i, updatedBy: actorId }, { transaction: t })
         } else if (newSiblings[i].position !== i) {
           await newSiblings[i].update({ position: i }, { transaction: t })
         }
@@ -158,6 +163,7 @@ async function reorderTask (taskId, { status, position }, actorId) {
       await ActivityLog.create({
         projectId,
         actorId,
+        taskId: task.id,
         action: 'task_status_changed',
         metadata: { taskId: task.id, from: oldStatus, to: status }
       }, { transaction: t })
@@ -177,11 +183,12 @@ async function reassignTask (taskId, assigneeId, actorId) {
   const oldAssigneeId = task.assigneeId
 
   await sequelize.transaction(async (t) => {
-    await task.update({ assigneeId }, { transaction: t })
+    await task.update({ assigneeId, updatedBy: actorId }, { transaction: t })
 
     await ActivityLog.create({
       projectId: task.projectId,
       actorId,
+      taskId: task.id,
       action: 'task_reassigned',
       metadata: { taskId: task.id, from: oldAssigneeId, to: assigneeId }
     }, { transaction: t })
@@ -212,6 +219,7 @@ async function addComment (taskId, userId, body) {
     await ActivityLog.create({
       projectId: task.projectId,
       actorId: userId,
+      taskId,
       action: 'comment_added',
       metadata: { taskId, commentId: comment.id }
     }, { transaction: t })

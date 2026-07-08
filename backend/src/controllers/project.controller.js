@@ -83,7 +83,7 @@ exports.removeMember = async (req, res, next) => {
 
 exports.listActivity = async (req, res, next) => {
   try {
-    const result = await projectService.listActivity(req.params.id, req.query)
+    const result = await projectService.listActivity(req.params.id, req.validatedQuery)
     res.json(result)
   } catch (err) {
     next(err)

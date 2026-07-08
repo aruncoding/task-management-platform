@@ -1,6 +1,5 @@
 const { ProjectMember } = require('../models')
 
-
 async function requireProjectMember (req, res, next) {
   try {
     const projectId = req.params.id || req.params.projectId
@@ -16,7 +15,6 @@ async function requireProjectMember (req, res, next) {
     next(err)
   }
 }
-
 
 function requireProjectRole (...roles) {
   return (req, res, next) => {

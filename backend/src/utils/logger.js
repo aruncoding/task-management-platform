@@ -1,27 +1,15 @@
 const winston = require('winston');
 
-const {
-  LOG_LEVEL = 'info',
-  NODE_ENV = 'development',
-} = process.env;
+const isProd = process.env.NODE_ENV === 'production';
 
-const isProductionEnvironment = NODE_ENV === 'production';
-
-const loggerFormat = isProductionEnvironment
+const format = isProd
   ? winston.format.json()
-  : winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    );
+  : winston.format.combine(winston.format.colorize(), winston.format.simple());
 
-const loggerTransports = [
-  new winston.transports.Console(),
-];
-
-const applicationLogger = winston.createLogger({
-  level: LOG_LEVEL,
-  format: loggerFormat,
-  transports: loggerTransports,
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format,
+  transports: [new winston.transports.Console()],
 });
 
-module.exports = applicationLogger;
+module.exports = logger;

@@ -1,11 +1,8 @@
 const express = require('express')
 const helmet = require('helmet')
 const cors = require('cors')
-const morgan = require('morgan')
 const cookieParser = require('cookie-parser')
-const swaggerUi = require('swagger-ui-express')
 
-const swaggerSpec = require('./config/swagger')
 const router = require('./routes/index')
 const logger = require('./utils/logger')
 const requestId = require('./middleware/requestId')
@@ -14,7 +11,11 @@ const app = express()
 
 app.use(requestId)
 app.use(helmet())
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000', credentials: true }))
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3001')
+  .split(',')
+  .map((origin) => origin.trim())
+
+app.use(cors({ origin: allowedOrigins, credentials: true }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
@@ -28,8 +29,6 @@ app.get('/api/health', async (req, res) => {
     res.status(500).json({ status: 'error', db: 'disconnected' })
   }
 })
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 app.use('/api/v1', router)
 

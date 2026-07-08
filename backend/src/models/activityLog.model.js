@@ -15,6 +15,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       field: 'actor_id'
     },
+     taskId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'task_id'
+    },
     action: {
       type: DataTypes.STRING,
       allowNull: false
@@ -31,6 +36,7 @@ module.exports = (sequelize, DataTypes) => {
   ActivityLog.associate = (models) => {
     ActivityLog.belongsTo(models.Project, { foreignKey: 'projectId', as: 'project' })
     ActivityLog.belongsTo(models.User, { foreignKey: 'actorId', as: 'actor' })
+    ActivityLog.belongsTo(models.Task, { foreignKey: 'taskId', as: 'task' })
   }
 
   return ActivityLog
