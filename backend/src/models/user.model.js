@@ -27,5 +27,14 @@ module.exports = (sequelize, DataTypes) => {
     underscored: true
   })
 
+   User.associate = (models) => {
+    User.hasMany(models.RefreshToken, { foreignKey: 'userId', as: 'refreshTokens' })
+    User.hasMany(models.Project, { foreignKey: 'ownerId', as: 'ownedProjects' })
+    User.hasMany(models.ProjectMember, { foreignKey: 'userId', as: 'memberships' })
+    User.hasMany(models.Task, { foreignKey: 'assigneeId', as: 'assignedTasks' })
+    User.hasMany(models.TaskComment, { foreignKey: 'userId', as: 'comments' })
+    User.hasMany(models.ActivityLog, { foreignKey: 'actorId', as: 'activities' })
+  }
+
   return User
 }
