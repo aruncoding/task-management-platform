@@ -15,11 +15,6 @@ module.exports = {
     database: process.env.DATABASE_NAME || 'task_management_dev',
   },
 
-  test: {
-    ...commonConfig,
-    database: process.env.DATABASE_NAME_TEST || 'task_management_test',
-  },
-
   production: {
     ...commonConfig,
     username: process.env.DATABASE_USERNAME,
