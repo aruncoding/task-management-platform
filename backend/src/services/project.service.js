@@ -42,17 +42,16 @@ async function listForUser(userId) {
     ]
   });
 
-  const projects = [];
+  const projects = []
 
   for (const membership of memberships) {
-    const project = membership.project.get({ plain: true });
-
-    project.myRole = membership.role;
-
-    projects.push(project);
+    // need plain object so we can tack on myRole without Sequelize complaining
+    const project = membership.project.get({ plain: true })
+    project.myRole = membership.role
+    projects.push(project)
   }
 
-  return projects;
+  return projects
 }
 
 async function getById(projectId) {

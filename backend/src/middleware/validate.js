@@ -3,10 +3,8 @@ module.exports = function validate (schema, prop = 'body') {
     const { error, value } = schema.validate(req[prop], { abortEarly: false, stripUnknown: true })
     if (error) {
       const details = error.details.map(d => d.message.replace(/"/g, ''))
-      return res.status(400).json({ message: 'Validation error', errors: details })
+      return res.status(400).json({ message: 'Invalid input', errors: details })
     }
-    // req.query is a read-only getter in Express 5, so it can't be reassigned -
-    // stash the validated/coerced value separately instead
     if (prop === 'query') {
       req.validatedQuery = value
     } else {

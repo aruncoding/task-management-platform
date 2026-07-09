@@ -6,9 +6,10 @@ async function requireProjectMember (req, res, next) {
     const membership = await ProjectMember.findOne({ where: { projectId, userId: req.user.id } })
 
     if (!membership) {
-      return res.status(403).json({ message: 'You are not a member of this project' })
+      return res.status(403).json({ message: 'Access denied' })
     }
 
+    // attach so downstream middleware can check role without re-querying
     req.projectMember = membership
     next()
   } catch (err) {
@@ -19,7 +20,7 @@ async function requireProjectMember (req, res, next) {
 function requireProjectRole (...roles) {
   return (req, res, next) => {
     if (!req.projectMember || !roles.includes(req.projectMember.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions for this action' })
+      return res.status(403).json({ message: 'You do not have permission to do this' })
     }
     next()
   }

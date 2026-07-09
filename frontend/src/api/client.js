@@ -25,7 +25,7 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// if a request 401s, try refreshing the access token once and replay it
+// on 401, refresh once and replay the original request
 let refreshPromise = null
 
 api.interceptors.response.use(

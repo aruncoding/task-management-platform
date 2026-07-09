@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError')
 
 async function createTask(projectId, data, actorId) {
   const task = await sequelize.transaction(async (t) => {
+    // new task goes to the bottom of the column
     const maxPosition = await Task.max('position', { where: { projectId, status: data.status || 'todo' }, transaction: t })
     const task = await Task.create({
       projectId,
@@ -11,8 +12,8 @@ async function createTask(projectId, data, actorId) {
       description: data.description,
       priority: data.priority,
       status: data.status || 'todo',
-      assigneeId: data.assigneeId,
-      dueDate: data.dueDate,
+      assigneeId: data.assigneeId ?? null,
+      dueDate: data.dueDate ?? null,
       position: (maxPosition || 0) + 1,
       createdBy: actorId,
       updatedBy: actorId
@@ -118,13 +119,12 @@ async function changeStatus(taskId, newStatus, actorId) {
     throw new ApiError(404, 'Task not found')
   }
 
-  if (task.status === newStatus) {
-    return task
-  }
+  if (task.status === newStatus) return task
 
   const oldStatus = task.status
 
   await sequelize.transaction(async (t) => {
+    // drop it at the bottom of the target column
     const maxPosition = await Task.max('position', { where: { projectId: task.projectId, status: newStatus }, transaction: t })
     await task.update({ status: newStatus, position: (maxPosition || 0) + 1, updatedBy: actorId }, { transaction: t })
 
@@ -165,9 +165,8 @@ async function reassignTask(taskId, assigneeId, actorId) {
 
 async function deleteTask(taskId) {
   const task = await Task.findByPk(taskId)
-  if (!task) {
-    throw new ApiError(404, 'Task not found')
-  }
+  if (!task) throw new ApiError(404, 'Task not found')
+  // TODO: maybe soft-delete instead of hard delete later
   await task.destroy()
 }
 

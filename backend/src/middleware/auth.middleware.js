@@ -4,7 +4,7 @@ const ApiError = require('../utils/ApiError')
 module.exports = function requireAuth (req, res, next) {
   const header = req.headers.authorization
   if (!header || !header.startsWith('Bearer ')) {
-    return next(new ApiError(401, 'Not authenticated'))
+    return next(new ApiError(401, 'No token provided'))
   }
 
   const token = header.split(' ')[1]
@@ -13,7 +13,7 @@ module.exports = function requireAuth (req, res, next) {
     const decoded = verifyAccessToken(token)
     req.user = { id: decoded.id, email: decoded.email }
     next()
-  } catch (err) {
-    next(new ApiError(401, 'Invalid or expired token'))
+  } catch {
+    next(new ApiError(401, 'Token is invalid or has expired'))
   }
 }

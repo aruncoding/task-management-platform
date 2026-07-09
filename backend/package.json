@@ -7,9 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "sequelize-cli db:seed:all",
-    "seed:undo": "sequelize-cli db:seed:undo:all",
-    "pretest": "cross-env NODE_ENV=test sequelize-cli db:migrate",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "seed:undo": "sequelize-cli db:seed:undo:all"
   },
   "keywords": [],
   "author": "",
@@ -25,15 +23,11 @@
     "joi": "^18.2.3",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.6",
-    "node-cache": "^5.1.2",
     "sequelize": "^6.37.8",
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "cross-env": "^10.1.0",
-    "jest": "^30.4.2",
     "nodemon": "^3.1.14",
-    "sequelize-cli": "^6.6.5",
-    "supertest": "^7.2.2"
+    "sequelize-cli": "^6.6.5"
   }
 }

@@ -49,14 +49,14 @@ async function runMigrations() {
       { replacements: [timestamp, name], type: QueryTypes.INSERT }
     )
 
-    console.log(`[migrator] ran: ${name}`)
+    console.log(`[migration name] ran: ${name}`)
     pending++
   }
 
   if (pending === 0) {
-    console.log('[migrator] nothing to migrate')
+    console.log('[migration] nothing to migrate')
   } else {
-    console.log(`[migrator] ${pending} migration(s) completed`)
+    console.log(`${pending} migration(s) completed`)
   }
 }
 

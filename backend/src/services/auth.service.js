@@ -9,13 +9,14 @@ const {
     REFRESH_TOKEN_TTL_MS
 } = require('../utils/jwt')
 
-const SALT_ROUNDS = 10
+const BCRYPT_ROUNDS = 10
 
+// store a hash instead of the raw token so a DB leak doesn't expose valid tokens
 function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-async function buildTokens(user, transaction) {
+async function issueTokens(user, transaction) {
     const payload = { id: user.id, email: user.email }
     const accessToken = signAccessToken(payload)
     const refreshToken = signRefreshToken({ id: user.id, jti: crypto.randomUUID() })
@@ -29,7 +30,7 @@ async function buildTokens(user, transaction) {
     return { accessToken, refreshToken }
 }
 
-function toSafeUser(user) {
+function stripSensitiveFields(user) {
     return { id: user.id, name: user.name, email: user.email }
 }
 
@@ -39,15 +40,15 @@ async function register({ name, email, password }) {
         throw new ApiError(409, 'Email is already registered')
     }
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
     const { user, tokens } = await sequelize.transaction(async (t) => {
         const user = await User.create({ name, email, passwordHash }, { transaction: t })
-        const tokens = await buildTokens(user, t)
+        const tokens = await issueTokens(user, t)
         return { user, tokens }
     })
 
-    return { user: toSafeUser(user), ...tokens }
+    return { user: stripSensitiveFields(user), ...tokens }
 }
 
 async function login({ email, password }) {
@@ -65,8 +66,8 @@ async function login({ email, password }) {
         throw new ApiError(403, 'This account has been deactivated')
     }
 
-    const tokens = await buildTokens(user)
-    return { user: toSafeUser(user), ...tokens }
+    const tokens = await issueTokens(user)
+    return { user: stripSensitiveFields(user), ...tokens }
 }
 
 async function refresh(refreshToken) {
@@ -89,26 +90,28 @@ async function refresh(refreshToken) {
     }
 
     if (existing.revokedAt) {
+        // possible token reuse attack — revoke everything for this user
         await RefreshToken.update(
             { revokedAt: new Date() },
             { where: { userId: existing.userId, revokedAt: null } }
         )
-        throw new ApiError(401, 'Refresh token has been revoked')
+        throw new ApiError(401, 'Session expired, please log in again')
     }
 
     if (existing.expiresAt < new Date()) {
-        throw new ApiError(401, 'Refresh token expired')
+        throw new ApiError(401, 'Session expired, please log in again')
     }
 
     const user = await User.findByPk(decoded.id)
     if (!user) {
-        throw new ApiError(401, 'User no longer exists')
+        throw new ApiError(401, 'Account not found')
     }
 
+    // rotate: old token is revoked, new pair is issued
     const tokens = await sequelize.transaction(async (t) => {
         existing.revokedAt = new Date()
         await existing.save({ transaction: t })
-        return buildTokens(user, t)
+        return issueTokens(user, t)
     })
 
     return tokens
@@ -124,4 +127,4 @@ async function logout(refreshToken) {
     )
 }
 
-module.exports = { register, login, refresh, logout, toSafeUser }
+module.exports = { register, login, refresh, logout, stripSensitiveFields }

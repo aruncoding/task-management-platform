@@ -1,8 +1,8 @@
 const winston = require('winston');
 
-const isProd = process.env.NODE_ENV === 'production';
+const prod = process.env.NODE_ENV === 'production'
 
-const format = isProd
+const format = prod
   ? winston.format.json()
   : winston.format.combine(winston.format.colorize(), winston.format.simple());
 
