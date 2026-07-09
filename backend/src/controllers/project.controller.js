@@ -27,24 +27,6 @@ exports.getOne = async (req, res, next) => {
   }
 }
 
-exports.update = async (req, res, next) => {
-  try {
-    const project = await projectService.updateProject(req.params.id, req.body)
-    res.json({ project })
-  } catch (err) {
-    next(err)
-  }
-}
-
-exports.remove = async (req, res, next) => {
-  try {
-    await projectService.deleteProject(req.params.id)
-    res.status(204).send()
-  } catch (err) {
-    next(err)
-  }
-}
-
 exports.listMembers = async (req, res, next) => {
   try {
     const members = await projectService.listMembers(req.params.id)

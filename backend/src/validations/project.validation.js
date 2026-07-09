@@ -5,11 +5,6 @@ const createProjectSchema = Joi.object({
   description: Joi.string().trim().max(2000).allow('', null)
 })
 
-const updateProjectSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(150),
-  description: Joi.string().trim().max(2000).allow('', null)
-}).min(1)
-
 const addMemberSchema = Joi.object({
   email: Joi.string().trim().email().required(),
   role: Joi.string().valid('admin', 'manager', 'member').default('member')
@@ -26,7 +21,6 @@ const paginationQuerySchema = Joi.object({
 
 module.exports = {
   createProjectSchema,
-  updateProjectSchema,
   addMemberSchema,
   updateMemberRoleSchema,
   paginationQuerySchema

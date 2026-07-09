@@ -1,65 +1,93 @@
 const { Project, ProjectMember, ActivityLog, User, sequelize } = require('../models')
 const ApiError = require('../utils/ApiError')
 
-async function createProject ({ name, description, ownerId }) {
-  const project = await sequelize.transaction(async (t) => {
-    const project = await Project.create({ name, description, ownerId }, { transaction: t })
-    await ProjectMember.create({
-      projectId: project.id,
-      userId: ownerId,
-      role: 'admin'
-    }, { transaction: t })
-    return project
-  })
+async function createProject({ name, description, ownerId }) {
+  const project = await sequelize.transaction(async (transaction) => {
+    const newProject = await Project.create(
+      {
+        name,
+        description,
+        ownerId
+      },
+      {
+        transaction
+      }
+    );
 
-  return project
+    await ProjectMember.create(
+      {
+        projectId: newProject.id,
+        userId: ownerId,
+        role: "admin"
+      },
+      {
+        transaction
+      }
+    );
+
+    return newProject;
+  });
+
+  return project;
 }
 
-async function listForUser (userId) {
+async function listForUser(userId) {
   const memberships = await ProjectMember.findAll({
     where: { userId },
-    include: [{ model: Project, as: 'project' }]
-  })
+    include: [
+      {
+        model: Project,
+        as: "project"
+      }
+    ]
+  });
 
-  return memberships.map(m => {
-    const project = m.project.get({ plain: true })
-    project.myRole = m.role
-    return project
-  })
+  const projects = [];
+
+  for (const membership of memberships) {
+    const project = membership.project.get({ plain: true });
+
+    project.myRole = membership.role;
+
+    projects.push(project);
+  }
+
+  return projects;
 }
 
-async function getById (projectId) {
+async function getById(projectId) {
   const project = await Project.findByPk(projectId, {
-    include: [{ model: User, as: 'owner', attributes: ['id', 'name', 'email'] }]
-  })
+    include: [
+      {
+        model: User,
+        as: "owner",
+        attributes: ["id", "name", "email"]
+      }
+    ]
+  });
+
   if (!project) {
-    throw new ApiError(404, 'Project not found')
+    throw new ApiError(404, "Project not found");
   }
-  return project
+
+  return project;
 }
 
-async function updateProject (projectId, data) {
-  const project = await Project.findByPk(projectId)
-  if (!project) {
-    throw new ApiError(404, 'Project not found')
-  }
-  await project.update(data)
-  return project
-}
+async function listMembers(projectId) {
+  const members = await ProjectMember.findAll({
+    where: {
+      projectId
+    },
+    include: [
+      {
+        model: User,
+        as: "user",
+        attributes: ["id", "name", "email"]
+      }
+    ]
+  });
 
-async function deleteProject (projectId) {
-  const project = await Project.findByPk(projectId)
-  if (!project) {
-    throw new ApiError(404, 'Project not found')
-  }
-  await project.destroy()
-}
-
-async function listMembers (projectId) {
-  return ProjectMember.findAll({
-    where: { projectId },
-    include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }]
-  })
+  return members;
 }
 
 async function addMember (projectId, { email, role }) {
@@ -128,8 +156,6 @@ module.exports = {
   createProject,
   listForUser,
   getById,
-  updateProject,
-  deleteProject,
   listMembers,
   addMember,
   updateMemberRole,

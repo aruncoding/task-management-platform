@@ -45,15 +45,6 @@ exports.changeStatus = async (req, res, next) => {
   }
 }
 
-exports.reorder = async (req, res, next) => {
-  try {
-    const task = await taskService.reorderTask(req.params.taskId, req.body, req.user.id)
-    res.json({ task })
-  } catch (err) {
-    next(err)
-  }
-}
-
 exports.reassign = async (req, res, next) => {
   try {
     const task = await taskService.reassignTask(req.params.taskId, req.body.assigneeId, req.user.id)

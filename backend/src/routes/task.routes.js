@@ -9,8 +9,7 @@ const { loadTaskAndMembership, allowStatusChange } = require('../middleware/task
 const {
     updateTaskSchema,
     changeStatusSchema,
-    assignSchema,
-    reorderSchema
+    assignSchema
 } = require('../validations/task.validation')
 const { createCommentSchema } = require('../validations/comment.validation')
 
@@ -25,8 +24,6 @@ router.patch('/:taskId/status', allowStatusChange, validate(changeStatusSchema),
 
 
 router.patch('/:taskId/assign', requireProjectRole('admin', 'manager'), validate(assignSchema), taskController.reassign)
-
-router.patch('/:taskId/reorder', requireProjectRole('admin', 'manager'), validate(reorderSchema), taskController.reorder)
 
 router.get('/:taskId/comments', taskController.listComments)
 router.post('/:taskId/comments', validate(createCommentSchema), taskController.addComment)

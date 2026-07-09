@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken')
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 function signAccessToken(payload) {
-    return jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+    return jwt.sign(
+        payload, process.env.JWT_ACCESS_SECRET, {
         expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m'
     })
 }

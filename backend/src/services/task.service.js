@@ -1,9 +1,8 @@
 const { Op } = require('sequelize')
 const { Task, TaskComment, ActivityLog, User, sequelize } = require('../models')
 const ApiError = require('../utils/ApiError')
-const { invalidateProjectStats } = require('./dashboard.service')
 
-async function createTask (projectId, data, actorId) {
+async function createTask(projectId, data, actorId) {
   const task = await sequelize.transaction(async (t) => {
     const maxPosition = await Task.max('position', { where: { projectId, status: data.status || 'todo' }, transaction: t })
     const task = await Task.create({
@@ -30,36 +29,66 @@ async function createTask (projectId, data, actorId) {
     return task
   })
 
-  invalidateProjectStats(projectId)
   return task
 }
 
-async function listTasks (projectId, query) {
-  const { page, limit, status, assigneeId, priority, search, sortBy, order } = query
+async function listTasks(projectId, query) {
+  const page = query.page;
+  const limit = query.limit;
 
-  const where = { projectId }
-  if (status) where.status = status
-  if (assigneeId) where.assigneeId = assigneeId
-  if (priority) where.priority = priority
-  if (search) where.title = { [Op.like]: `%${search}%` }
+  const where = {
+    projectId
+  };
 
-  const offset = (page - 1) * limit
+  if (query.status) {
+    where.status = query.status;
+  }
 
-  const { rows, count } = await Task.findAndCountAll({
+  if (query.assigneeId) {
+    where.assigneeId = query.assigneeId;
+  }
+
+  if (query.priority) {
+    where.priority = query.priority;
+  }
+
+  if (query.search) {
+    where.title = {
+      [Op.like]: `%${query.search}%`
+    };
+  }
+
+  const offset = (page - 1) * limit;
+
+  const result = await Task.findAndCountAll({
     where,
-    include: [{ model: User, as: 'assignee', attributes: ['id', 'name', 'email'] }],
-    order: [[sortBy, order], ['id', 'ASC']],
+    include: [
+      {
+        model: User,
+        as: "assignee",
+        attributes: ["id", "name", "email"]
+      }
+    ],
+    order: [
+      [query.sortBy, query.order],
+      ["id", "ASC"]
+    ],
     limit,
     offset
-  })
+  });
 
   return {
-    tasks: rows,
-    pagination: { page, limit, total: count, totalPages: Math.ceil(count / limit) }
-  }
+    tasks: result.rows,
+    pagination: {
+      page,
+      limit,
+      total: result.count,
+      totalPages: Math.ceil(result.count / limit)
+    }
+  };
 }
 
-async function getById (taskId) {
+async function getById(taskId) {
   const task = await Task.findByPk(taskId, {
     include: [{ model: User, as: 'assignee', attributes: ['id', 'name', 'email'] }]
   })
@@ -69,17 +98,21 @@ async function getById (taskId) {
   return task
 }
 
-async function updateTask (taskId, data, actorId) {
-  const task = await Task.findByPk(taskId)
+async function updateTask(taskId, data, actorId) {
+  const task = await Task.findByPk(taskId);
+
   if (!task) {
-    throw new ApiError(404, 'Task not found')
+    throw new ApiError(404, "Task not found");
   }
-  await task.update({ ...data, updatedBy: actorId })
-  invalidateProjectStats(task.projectId)
-  return task
+
+  data.updatedBy = actorId;
+
+  await task.update(data);
+
+  return task;
 }
 
-async function changeStatus (taskId, newStatus, actorId) {
+async function changeStatus(taskId, newStatus, actorId) {
   const task = await Task.findByPk(taskId)
   if (!task) {
     throw new ApiError(404, 'Task not found')
@@ -104,77 +137,10 @@ async function changeStatus (taskId, newStatus, actorId) {
     }, { transaction: t })
   })
 
-  invalidateProjectStats(task.projectId)
   return task
 }
 
-// full reorder - moves a task to an arbitrary position within a status column (same or different column)
-async function reorderTask (taskId, { status, position }, actorId) {
-  const task = await Task.findByPk(taskId)
-  if (!task) {
-    throw new ApiError(404, 'Task not found')
-  }
-
-  const oldStatus = task.status
-  const projectId = task.projectId
-
-  await sequelize.transaction(async (t) => {
-    if (oldStatus === status) {
-      const siblings = await Task.findAll({
-        where: { projectId, status, id: { [Op.ne]: task.id } },
-        order: [['position', 'ASC']],
-        transaction: t
-      })
-      siblings.splice(position, 0, task)
-      for (let i = 0; i < siblings.length; i++) {
-        if (siblings[i].position !== i) {
-          const extra = siblings[i].id === task.id ? { updatedBy: actorId } : {}
-          await siblings[i].update({ position: i, ...extra }, { transaction: t })
-        }
-      }
-    } else {
-      const oldSiblings = await Task.findAll({
-        where: { projectId, status: oldStatus, id: { [Op.ne]: task.id } },
-        order: [['position', 'ASC']],
-        transaction: t
-      })
-      for (let i = 0; i < oldSiblings.length; i++) {
-        if (oldSiblings[i].position !== i) {
-          await oldSiblings[i].update({ position: i }, { transaction: t })
-        }
-      }
-
-      const newSiblings = await Task.findAll({
-        where: { projectId, status, id: { [Op.ne]: task.id } },
-        order: [['position', 'ASC']],
-        transaction: t
-      })
-      newSiblings.splice(position, 0, task)
-      for (let i = 0; i < newSiblings.length; i++) {
-        if (newSiblings[i].id === task.id) {
-          await task.update({ status, position: i, updatedBy: actorId }, { transaction: t })
-        } else if (newSiblings[i].position !== i) {
-          await newSiblings[i].update({ position: i }, { transaction: t })
-        }
-      }
-    }
-
-    if (oldStatus !== status) {
-      await ActivityLog.create({
-        projectId,
-        actorId,
-        taskId: task.id,
-        action: 'task_status_changed',
-        metadata: { taskId: task.id, from: oldStatus, to: status }
-      }, { transaction: t })
-    }
-  })
-
-  invalidateProjectStats(projectId)
-  return task
-}
-
-async function reassignTask (taskId, assigneeId, actorId) {
+async function reassignTask(taskId, assigneeId, actorId) {
   const task = await Task.findByPk(taskId)
   if (!task) {
     throw new ApiError(404, 'Task not found')
@@ -194,20 +160,18 @@ async function reassignTask (taskId, assigneeId, actorId) {
     }, { transaction: t })
   })
 
-  invalidateProjectStats(task.projectId)
   return task
 }
 
-async function deleteTask (taskId) {
+async function deleteTask(taskId) {
   const task = await Task.findByPk(taskId)
   if (!task) {
     throw new ApiError(404, 'Task not found')
   }
   await task.destroy()
-  invalidateProjectStats(task.projectId)
 }
 
-async function addComment (taskId, userId, body) {
+async function addComment(taskId, userId, body) {
   const task = await Task.findByPk(taskId)
   if (!task) {
     throw new ApiError(404, 'Task not found')
@@ -230,7 +194,7 @@ async function addComment (taskId, userId, body) {
   return comment
 }
 
-async function listComments (taskId) {
+async function listComments(taskId) {
   return TaskComment.findAll({
     where: { taskId },
     include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }],
@@ -244,7 +208,6 @@ module.exports = {
   getById,
   updateTask,
   changeStatus,
-  reorderTask,
   reassignTask,
   deleteTask,
   addComment,

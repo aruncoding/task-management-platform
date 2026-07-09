@@ -27,11 +27,6 @@ const assignSchema = Joi.object({
   assigneeId: Joi.number().integer().allow(null).required()
 })
 
-const reorderSchema = Joi.object({
-  status: Joi.string().valid(...STATUSES).required(),
-  position: Joi.number().integer().min(0).required()
-})
-
 const listTasksQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
@@ -50,6 +45,5 @@ module.exports = {
   updateTaskSchema,
   changeStatusSchema,
   assignSchema,
-  reorderSchema,
   listTasksQuerySchema
 }

@@ -50,7 +50,7 @@ The primary focus of this project is clean architecture, secure API design, prop
 * Project-based Role-Based Access Control (Admin, Manager, Member).
 * Create, update, delete, and manage projects.
 * Add, remove, and manage project members.
-* Create, assign, update, reorder, and delete tasks.
+* Create, assign, update, and delete tasks.
 * Task status management using a Kanban-style board.
 * Task comments and activity history tracking.
 * Input validation, secure authentication, and rate limiting.

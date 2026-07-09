@@ -12,9 +12,9 @@ function setRefreshCookie (res, token) {
 
 exports.register = async (req, res, next) => {
   try {
-    const { user, accessToken, refreshToken } = await authService.register(req.body)
-    setRefreshCookie(res, refreshToken)
-    res.status(201).json({ user, accessToken })
+    const { user, accessToken, refreshToken } = await authService.register(req.body);
+    setRefreshCookie(res, refreshToken);
+    res.status(201).json({ user, accessToken });
   } catch (err) {
     next(err)
   }
@@ -22,9 +22,9 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   try {
-    const { user, accessToken, refreshToken } = await authService.login(req.body)
-    setRefreshCookie(res, refreshToken)
-    res.json({ user, accessToken })
+    const { user, accessToken, refreshToken } = await authService.login(req.body);
+    setRefreshCookie(res, refreshToken);
+    res.json({ user, accessToken });
   } catch (err) {
     next(err)
   }
